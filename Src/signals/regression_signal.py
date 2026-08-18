@@ -14,3 +14,8 @@ print(df[["Date", "Close", "Momentum_20"]].tail(10))
 
 df["Volatility_20"] = df["Return"].rolling(window=20).std()
 print(df[["Date", "Close", "Momentum_20", "Volatility_20"]].tail(10))
+
+df["Future_Return_5"] = df["Close"].shift(-5) / df["Close"] - 1
+
+df_clean = df.dropna()
+print(df_clean.shape)
