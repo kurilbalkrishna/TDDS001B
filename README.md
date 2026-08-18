@@ -1,13 +1,15 @@
-Nikkei Signal Lab
+NIKKEI SIGNAL LAB
+
 What This Project Does
 
 A signal-based stock selection model on the Nikkei 225 index.
 
-Why
+WHY
 
 This project tests whether a machine learning approach performs better or worse than traditional regression for generating trading signals on Japanese equity data.
 
-Tech Stack
+TECH STACK
+
 Python
 yfinance (data)
 pandas / SQLite (data handling/storage)
@@ -18,10 +20,11 @@ data/raw/ — raw Nikkei 225 data fetched via yfinance
 src/ingestion/ — Python code that fetches and saves the Nikkei data
 src/database/ — sets up the SQLite database and loads the price data
 src/signals/ — calculates factors (momentum, volatility) and builds the regression signal
-Status
 
+
+STATUS
 In progress — data ingestion complete, factors built, regression model trained. Next: model evaluation and ML comparison.
 
-Author
+AUTHOR
 
 Balkrishna Kuril
