@@ -9,6 +9,9 @@ print("start fetching Nikkei 225 data...")
 df = yf.download(config["ticker"], start=config["start_date"])
 print("Data fetched successfully.")
 
+if isinstance(df.columns, pd.MultiIndex):
+    df.columns = df.columns.get_level_values(0)
+
 
 print(df.head())
 print(f"Total rows: {len(df)}")
