@@ -1,15 +1,19 @@
 from sklearn.linear_model import LinearRegression 
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
 
 
 import pandas as pd 
 import sqlite3
+
+# Connect to the SQLite database
 
 conn = sqlite3.connect ("data/nikkei.db")
 df = pd.read_sql("SELECT * FROM prices", conn)
 print(df.head())
 print(df.shape)
 
+# Calculate returns and momentum features
 df["Return"] = df["Close"].pct_change()
 print(df[["Date", "Close", "Return"]].head(10))
 
@@ -33,6 +37,7 @@ model.fit(X, y)
 print("Coefficients:", model.coef_)
 print("Intercept:", model.intercept_)
 
+#line regression model evaluation   
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 
 model = LinearRegression()
@@ -43,3 +48,18 @@ test_score = model.score(X_test, y_test)
 
 print(f"Train R²: {train_score:.4f}")
 print(f"Test R²: {test_score:.4f}")
+
+#Random Forest Regressor
+rf_model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=4,
+    min_samples_leaf=20,
+    random_state=42
+)
+rf_model.fit(X_train, y_train)
+
+rf_train_score = rf_model.score(X_train, y_train)
+rf_test_score = rf_model.score(X_test, y_test)
+
+print(f"Random Forest Train R²: {rf_train_score:.4f}")
+print(f"Random Forest Test R²: {rf_test_score:.4f}")
