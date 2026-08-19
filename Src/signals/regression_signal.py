@@ -1,3 +1,4 @@
+from sklearn.linear_model import LinearRegression 
 import pandas as pd 
 import sqlite3
 
@@ -19,3 +20,12 @@ df["Future_Return_5"] = df["Close"].shift(-5) / df["Close"] - 1
 
 df_clean = df.dropna()
 print(df_clean.shape)
+
+X = df_clean[["Momentum_20", "Volatility_20"]]
+y = df_clean["Future_Return_5"]
+
+model = LinearRegression()
+model.fit(X, y)
+
+print("Coefficients:", model.coef_)
+print("Intercept:", model.intercept_)
