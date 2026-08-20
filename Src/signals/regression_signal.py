@@ -63,3 +63,18 @@ rf_test_score = rf_model.score(X_test, y_test)
 
 print(f"Random Forest Train R²: {rf_train_score:.4f}")
 print(f"Random Forest Test R²: {rf_test_score:.4f}")
+
+from sklearn.metrics import r2_score
+
+window_size = 1000  # initial training window
+step_size = 200      # how far to roll forward each time
+
+results = []
+
+for start in range(window_size, len(X) - step_size, step_size):
+    X_train_wf = X.iloc[:start]
+    y_train_wf = y.iloc[:start]
+    X_test_wf = X.iloc[start:start + step_size]
+    y_test_wf = y.iloc[start:start + step_size]
+
+    print(f"Window: train size {len(X_train_wf)}, test size {len(X_test_wf)}")
