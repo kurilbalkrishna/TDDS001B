@@ -77,4 +77,15 @@ for start in range(window_size, len(X) - step_size, step_size):
     X_test_wf = X.iloc[start:start + step_size]
     y_test_wf = y.iloc[start:start + step_size]
 
-    print(f"Window: train size {len(X_train_wf)}, test size {len(X_test_wf)}")
+    # Regression
+    reg_wf = LinearRegression()
+    reg_wf.fit(X_train_wf, y_train_wf)
+    reg_r2 = r2_score(y_test_wf, reg_wf.predict(X_test_wf))
+
+    # Random Forest
+    rf_wf = RandomForestRegressor(n_estimators=100, max_depth=4, min_samples_leaf=20, random_state=42)
+    rf_wf.fit(X_train_wf, y_train_wf)
+    rf_r2 = r2_score(y_test_wf, rf_wf.predict(X_test_wf))
+
+    results.append({"train_size": start, "regression_r2": reg_r2, "rf_r2": rf_r2})
+    print(f"Train size {start}: Regression R²={reg_r2:.4f}, RF R²={rf_r2:.4f}")
