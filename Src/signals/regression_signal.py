@@ -89,3 +89,12 @@ for start in range(window_size, len(X) - step_size, step_size):
 
     results.append({"train_size": start, "regression_r2": reg_r2, "rf_r2": rf_r2})
     print(f"Train size {start}: Regression R²={reg_r2:.4f}, RF R²={rf_r2:.4f}")
+    
+    import numpy as np
+
+reg_scores = [r["regression_r2"] for r in results]
+rf_scores = [r["rf_r2"] for r in results]
+
+print("\n--- Walk-Forward Summary ---")
+print(f"Regression: mean R² = {np.mean(reg_scores):.4f}, std = {np.std(reg_scores):.4f}")
+print(f"Random Forest: mean R² = {np.mean(rf_scores):.4f}, std = {np.std(rf_scores):.4f}")
