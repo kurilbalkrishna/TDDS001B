@@ -98,3 +98,7 @@ rf_scores = [r["rf_r2"] for r in results]
 print("\n--- Walk-Forward Summary ---")
 print(f"Regression: mean R² = {np.mean(reg_scores):.4f}, std = {np.std(reg_scores):.4f}")
 print(f"Random Forest: mean R² = {np.mean(rf_scores):.4f}, std = {np.std(rf_scores):.4f}")
+
+from scipy import stats
+t_stat, p_value = stats.ttest_rel(reg_scores, rf_scores)
+print(f"\nPaired t-test: t-statistic = {t_stat:.4f}, p-value = {p_value:.4f}")
