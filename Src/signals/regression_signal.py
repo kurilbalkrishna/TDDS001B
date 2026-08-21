@@ -35,7 +35,10 @@ df["Future_Return_5"] = df["Close"].shift(-5) / df["Close"] - 1
 df_clean = df.dropna()
 print(df_clean.shape)
 
-X = df_clean[["Momentum_5", "Momentum_20", "Momentum_60", "Volatility_20", "Volatility_60", "Price_to_MA50"]]
+X = df_clean[["Momentum_5", "Momentum_20", "Volatility_20"]]
+correlation_matrix = X.corr()
+print("\n--- Factor Correlation Matrix ---")
+print(correlation_matrix.round(3))
 y = df_clean["Future_Return_5"]
 
 model = LinearRegression()
