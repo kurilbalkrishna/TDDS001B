@@ -23,12 +23,19 @@ print(df[["Date", "Close", "Momentum_20"]].tail(10))
 df["Volatility_20"] = df["Return"].rolling(window=20).std()
 print(df[["Date", "Close", "Momentum_20", "Volatility_20"]].tail(10))
 
+df["Momentum_5"] = df["Close"].pct_change(periods=5)
+df["Momentum_60"] = df["Close"].pct_change(periods=60)
+df["Volatility_60"] = df["Return"].rolling(window=60).std()
+
+df["MA50"] = df["Close"].rolling(window=50).mean()
+df["Price_to_MA50"] = df["Close"] / df["MA50"] - 1
+
 df["Future_Return_5"] = df["Close"].shift(-5) / df["Close"] - 1
 
 df_clean = df.dropna()
 print(df_clean.shape)
 
-X = df_clean[["Momentum_20", "Volatility_20"]]
+X = df_clean[["Momentum_5", "Momentum_20", "Momentum_60", "Volatility_20", "Volatility_60", "Price_to_MA50"]]
 y = df_clean["Future_Return_5"]
 
 model = LinearRegression()
