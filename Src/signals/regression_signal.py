@@ -5,6 +5,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import pandas as pd 
 import sqlite3
+import numpy as np
 
 # Connect to the SQLite database
 
@@ -59,6 +60,24 @@ test_score = model.score(X_test, y_test)
 print(f"Train R²: {train_score:.4f}")
 print(f"Test R²: {test_score:.4f}")
 
+predicted_returns = model.predict(X_test)
+positions = (predicted_returns > 0).astype(int)
+y_test_actual = df_clean["Return"].iloc[-len(y_test):].values
+strategy_returns = positions * y_test_actual
+position_changes = np.abs(np.diff(positions, prepend=0))
+transaction_cost_bps = 10  # 10 basis points = 0.10% per trade
+cost_per_trade = transaction_cost_bps / 10000
+
+total_costs = position_changes.sum() * cost_per_trade
+net_strategy_return = strategy_returns.sum() - total_costs
+
+print(f"Number of trades: {position_changes.sum()}")
+print(f"Total transaction costs: {total_costs:.4f}")
+print(f"Strategy total return (after costs): {net_strategy_return:.4f}")
+
+print(f"\nStrategy total return (no costs): {strategy_returns.sum():.4f}")
+print(f"\nSample positions: {positions[:10]}")
+
 #Random Forest Regressor
 rf_model = RandomForestRegressor(
     n_estimators=100,
@@ -100,7 +119,6 @@ for start in range(window_size, len(X) - step_size, step_size):
     results.append({"train_size": start, "regression_r2": reg_r2, "rf_r2": rf_r2})
     print(f"Train size {start}: Regression R²={reg_r2:.4f}, RF R²={rf_r2:.4f}")
     
-    import numpy as np
 
 reg_scores = [r["regression_r2"] for r in results]
 rf_scores = [r["rf_r2"] for r in results]
