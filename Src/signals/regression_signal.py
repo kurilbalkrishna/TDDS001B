@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 import pandas as pd 
 import sqlite3
 import numpy as np
+import shap
 
 # Connect to the SQLite database
 
@@ -92,6 +93,13 @@ rf_test_score = rf_model.score(X_test, y_test)
 
 print(f"Random Forest Train R²: {rf_train_score:.4f}")
 print(f"Random Forest Test R²: {rf_test_score:.4f}")
+
+explainer = shap.TreeExplainer(rf_model)
+shap_values = explainer.shap_values(X_test)
+
+print("\n--- SHAP Mean Absolute Values (Feature Importance) ---")
+for i, feature in enumerate(X_test.columns):
+    print(f"{feature}: {abs(shap_values[:, i]).mean():.5f}")
 
 from sklearn.metrics import r2_score
 
