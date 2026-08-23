@@ -33,3 +33,21 @@ fig2.add_trace(go.Scatter(x=window_sizes, y=rf_scores, mode="lines+markers", nam
 fig2.update_layout(xaxis_title="Training Window Size", yaxis_title="R²", height=400)
 
 st.plotly_chart(fig2, use_container_width=True)
+
+st.subheader("Key Findings Summary")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Regression Mean R²", "-0.0109", help="Walk-forward average")
+    st.metric("Regression Std Dev", "0.0297")
+
+with col2:
+    st.metric("Random Forest Mean R²", "-0.0190", help="Walk-forward average")
+    st.metric("Random Forest Std Dev", "0.0560")
+
+with col3:
+    st.metric("Buy-and-Hold Return", "125.27%")
+    st.metric("Strategy Return (after costs)", "-1.94%", delta="-1.94%", delta_color="inverse")
+
+st.write(f"**Statistical significance (paired t-test):** p = 0.5363 — the difference between models is not statistically significant.")
