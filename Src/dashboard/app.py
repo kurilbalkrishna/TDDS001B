@@ -128,6 +128,5 @@ with tab4:
     fig_shap = go.Figure(go.Bar(x=shap_data["Mean |SHAP value|"], y=shap_data["Factor"], orientation="h"))
     fig_shap.update_layout(height=300, xaxis_title="Mean |SHAP value|")
     st.plotly_chart(fig_shap, use_container_width=True)
-
 st.markdown("---")
 st.caption("Built as part of ongoing research into signal validation for Japanese equity markets. Full methodology and findings available in the accompanying research paper.")
