@@ -2,6 +2,14 @@ from fastapi import FastAPI
 
 app = FastAPI(title="Nikkei Signal Lab API")
 
+import sqlite3
+import pandas as pd
+
+@app.get("/data/prices")
+def get_prices():
+    conn = sqlite3.connect("data/nikkei.db")
+    df = pd.read_sql("SELECT Date, Close FROM prices ORDER BY Date DESC LIMIT 100", conn)
+    return df.to_dict(orient="records")
 
 @app.get("/")
 def root():
