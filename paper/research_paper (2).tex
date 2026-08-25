@@ -1,0 +1,307 @@
+\documentclass[11pt]{article}
+
+% ===================== PACKAGES =====================
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{setspace}
+\onehalfspacing
+
+% ===================== TITLE =====================
+\title{Signal Validation for Nikkei 225: A Comparative Study of \\ Regression and Machine Learning Approaches}
+\author{Balkrishna Kuril \\ \small BSc Data Science and Analytics, KES Shroff College}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+% ===================== ABSTRACT =====================
+\begin{abstract}
+This study develops and validates a systematic signal framework for the Nikkei 225 index, comparing a linear regression baseline against a regularized machine learning model (Random Forest) for predicting short-horizon forward returns. Using two factors derived from price data --- 20-day momentum and 20-day realized volatility --- both models are evaluated first on a single chronological train/test split and subsequently under walk-forward validation across fifteen rolling windows spanning 2010--2026. While a single train/test split suggested a modest advantage for the machine learning model, walk-forward validation reveals no consistent out-of-sample outperformance for either approach, with the regression model exhibiting greater stability across market regimes; a paired $t$-test confirms this stability difference is nonetheless not statistically significant ($p = 0.46$). An unconstrained machine learning model is additionally shown to overfit severely, underscoring the importance of regularization and rigorous, multi-window validation over single-split evaluation in empirical asset pricing research. This work is intended as a methodological foundation for further research into signal-based approaches to Japanese equity markets.
+\end{abstract}
+
+\section{Introduction}
+
+Machine learning methods have become increasingly common in empirical finance research, with much of this literature developed and validated on U.S. large-capitalization equity data. Whether the apparent advantages of machine learning-based signal generation transfer to other market structures --- with different liquidity profiles, governance norms, and momentum dynamics --- remains comparatively under-examined, particularly for Japanese equities.
+
+This study investigates a narrow but concrete question: \emph{does a machine learning model produce more reliable short-horizon return signals than a simple linear regression model on the Nikkei 225 index, once realistic out-of-sample validation is applied?} Rather than searching for a novel trading strategy, the primary contribution of this work is methodological: demonstrating how naive single-split evaluation can produce misleading conclusions about model superiority, and how walk-forward validation across multiple time periods provides a more honest assessment of a model's genuine predictive value.
+
+This research is motivated in part by prior work on Japanese equity index volatility, particularly the realized volatility and daily-return-based forecasting approach of \citet{takahashi2024forecasting}, and the application of realized volatility to Nikkei 225 options pricing by \citet{ubukata2011pricing}. While that line of research focuses on modeling volatility itself using econometric methods, the present study addresses a related but distinct question: whether factors including volatility can be used, in a machine-learning or regression framework, to generate predictive signals for future returns.
+
+\section{Related Work}
+
+Volatility modeling for Japanese equity indices has been studied extensively using realized-volatility-based econometric approaches. \citet{takahashi2024forecasting} combine daily returns and realized volatility to forecast future volatility in Japanese stock indices, while \citet{ubukata2011pricing} apply realized volatility measures to the pricing of Nikkei 225 options. More recent work extends this line of research to high-frequency, intraday data using Bayesian estimation methods \citep{watanabe2023highfrequency}.
+
+The present study differs from this body of work in both objective and method: rather than forecasting volatility itself using stochastic volatility models, this study treats volatility (alongside momentum) as an input factor within a signal-generation framework, and compares a linear and a non-linear (tree-based) approach to using these factors for return prediction. The methodological emphasis here --- particularly the use of walk-forward validation to assess robustness --- is intended to complement, rather than directly extend, the econometric volatility-forecasting literature.
+
+\section{Data}
+
+\subsection{Universe and Source}
+The dataset consists of daily price data for the Nikkei 225 index (ticker \texttt{\^{}N225}), obtained via the Yahoo Finance API through the \texttt{yfinance} Python library, covering January 2010 through August 2026 (4{,}064 trading days).
+
+\subsection{Data Processing}
+Raw data (Open, High, Low, Close, Volume) was validated for missing values and stored in a structured SQLite database. No missing values were identified in the raw price series. Column structures returned in a multi-level format by the data source were flattened prior to storage.
+
+\subsection{Limitations of the Data}
+As this study uses the Nikkei 225 index directly rather than individual constituent stocks, survivorship bias considerations that typically affect constituent-level backtests are not directly applicable; however, the index composition itself has changed over the sample period, which is not explicitly modeled here. Corporate actions are reflected in the index level itself rather than adjusted at the constituent level.
+
+\section{Methodology}
+
+\subsection{Factor Construction}
+An initial two-factor specification was first evaluated, followed by an expanded six-factor specification to test whether a richer factor set improves predictive performance. The initial factors were:
+\begin{itemize}
+    \item \textbf{20-day Momentum}: the percentage price change over the trailing 20 trading days.
+    \item \textbf{20-day Volatility}: the rolling standard deviation of daily returns over the trailing 20 trading days.
+\end{itemize}
+
+The expanded specification additionally includes:
+\begin{itemize}
+    \item \textbf{5-day and 60-day Momentum}: shorter- and longer-horizon analogues of the 20-day momentum factor.
+    \item \textbf{60-day Volatility}: a longer-horizon analogue of the 20-day volatility factor.
+    \item \textbf{Price-to-50-day Moving Average}: the percentage deviation of the closing price from its trailing 50-day moving average, a standard mean-reversion indicator.
+\end{itemize}
+
+\subsection{Target Variable}
+The prediction target is the 5-day forward return:
+\begin{equation}
+    \text{Future\_Return}_{t} = \frac{\text{Close}_{t+5}}{\text{Close}_{t}} - 1
+\end{equation}
+Rows with insufficient trailing or forward data (resulting from the rolling factor windows and the forward-looking target) were removed prior to modeling, yielding a final analysis sample of 4{,}039 observations.
+
+\subsection{Models}
+
+\subsubsection{Linear Regression}
+A standard ordinary least squares linear regression was fit using the two factors as predictors:
+\begin{equation}
+    \widehat{\text{Future\_Return}}_t = \beta_0 + \beta_1 \cdot \text{Momentum}_{20,t} + \beta_2 \cdot \text{Volatility}_{20,t}
+\end{equation}
+
+\subsubsection{Machine Learning Model}
+A Random Forest regressor was used as the machine learning comparison. Following common convention in applied finance research, this study uses ``regression'' to refer to the linear model and ``machine learning'' to refer to the non-linear, tree-based ensemble method, though it is acknowledged that linear regression is itself a machine learning technique in the strict sense.
+
+Two configurations were evaluated:
+\begin{itemize}
+    \item \textbf{Unconstrained}: 100 estimators, default depth, to illustrate the effect of overfitting.
+    \item \textbf{Regularized}: 100 estimators, maximum depth of 4, minimum samples per leaf of 20.
+\end{itemize}
+
+\subsection{Evaluation Strategy}
+
+\subsubsection{Single Train/Test Split}
+An initial evaluation used a chronological 80/20 split (no shuffling, to preserve temporal ordering and avoid look-ahead bias), with the final 20\% of observations (by date) held out as a test set.
+
+\subsubsection{Walk-Forward Validation}
+To assess robustness across different market regimes, a walk-forward validation scheme was subsequently employed. Beginning with an initial training window of 1{,}000 observations, the training window was expanded in increments of 200 observations, with each subsequent 200-observation block used as an out-of-sample test set. This produced 15 sequential train/test windows spanning the full sample period. Both models were retrained from scratch at each window using only data available up to that point, ensuring no future information was used in training.
+
+\section{Results}
+
+\subsection{Single Split Results}
+Table~\ref{tab:single_split} reports $R^2$ for both models on the single chronological train/test split.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Model & Train $R^2$ & Test $R^2$ \\
+\midrule
+Linear Regression & 0.0058 & 0.0047 \\
+Random Forest (unconstrained) & 0.8615 & $-$0.1904 \\
+Random Forest (regularized) & 0.0608 & 0.0193 \\
+\bottomrule
+\end{tabular}
+\caption{Single train/test split results ($R^2$).}
+\label{tab:single_split}
+\end{table}
+
+The unconstrained Random Forest exhibits severe overfitting: near-perfect fit on training data (Train $R^2 = 0.86$) collapses to negative $R^2$ on held-out test data, indicating predictions worse than a naive mean-prediction baseline. Once regularized, the Random Forest generalizes appropriately, and modestly outperforms linear regression on this particular test split (Test $R^2 = 0.0193$ vs.\ $0.0047$).
+
+\subsection{Walk-Forward Validation Results}
+
+Table~\ref{tab:walkforward} reports $R^2$ for both models across all 15 walk-forward windows.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Training Window Size & Regression $R^2$ & Random Forest $R^2$ \\
+\midrule
+1000 & 0.0049 & $-$0.0841 \\
+1200 & $-$0.0073 & $-$0.0489 \\
+1400 & $-$0.0096 & 0.0303 \\
+1600 & 0.0012 & $-$0.0819 \\
+1800 & $-$0.0227 & 0.0218 \\
+2000 & $-$0.0007 & 0.0769 \\
+2200 & 0.0031 & $-$0.0814 \\
+2400 & 0.0087 & 0.0146 \\
+2600 & $-$0.0338 & $-$0.0228 \\
+2800 & 0.0013 & $-$0.0042 \\
+3000 & 0.0158 & $-$0.0397 \\
+3200 & $-$0.0181 & $-$0.0306 \\
+3400 & 0.0238 & 0.0444 \\
+3600 & 0.0359 & 0.0698 \\
+3800 & $-$0.0762 & $-$0.0874 \\
+\midrule
+\textbf{Mean} & \textbf{$-$0.0049} & \textbf{$-$0.0149} \\
+\textbf{Std.\ Dev.} & \textbf{0.0256} & \textbf{0.0545} \\
+\bottomrule
+\end{tabular}
+\caption{Walk-forward validation results across 15 rolling windows.}
+\label{tab:walkforward}
+\end{table}
+
+Contrary to the single-split result, walk-forward validation shows that the apparent Random Forest advantage does not generalize consistently. Across the 15 windows, the regression model achieves a higher mean $R^2$ ($-0.0049$ vs.\ $-0.0149$) and, notably, substantially lower variance (std.\ 0.0256 vs.\ 0.0545) than the Random Forest model. The Random Forest's performance swings more widely between windows, at times outperforming regression considerably (e.g., window at 2000 observations: $0.0769$ vs.\ $-0.0007$) and at other times underperforming it substantially (e.g., window at 1000 observations: $-0.0841$ vs.\ $0.0049$).
+
+\subsection{Statistical Significance}
+
+To assess whether the observed difference in mean performance between the two models is statistically meaningful, a paired $t$-test was conducted on the 15 paired window-level $R^2$ values. The test yielded $t = 0.75$, $p = 0.46$. As $p \gg 0.05$, the difference between the regression and Random Forest models across walk-forward windows is not statistically significant. This indicates that, despite regression exhibiting a higher mean and lower variance, neither model can be confidently distinguished from the other in terms of genuine predictive performance given the available sample of windows.
+
+\section{Discussion}
+
+Three findings emerge from this analysis. First, with only two simple factors, neither model demonstrates meaningful, consistent predictive power for 5-day forward returns on the Nikkei 225 -- a result broadly consistent with market efficiency. Second, an unconstrained tree-based model can produce dramatically misleading in-sample performance, underscoring the necessity of regularization when applying flexible machine learning models to financial time series with limited sample sizes relative to model complexity. Third, and most importantly from a methodological standpoint, a single train/test split evaluation would have supported an incorrect conclusion -- that machine learning meaningfully outperforms linear regression -- which walk-forward validation across multiple market regimes does not support. This illustrates a general risk in applied financial machine learning: performance conclusions drawn from a single evaluation window may not generalize and should be treated with appropriate caution.
+
+A further, related caution applies even to the walk-forward comparison itself: although regression exhibited a higher mean $R^2$ and lower variance than Random Forest across the 15 windows, the paired $t$-test confirmed this difference is not statistically significant. This is an important methodological point in its own right -- an observed gap between two models' summary statistics should not be treated as a meaningful finding without formal significance testing, particularly when the number of independent evaluation windows is small.
+
+\subsection{Effect of an Expanded Factor Set}
+
+To test whether a richer factor set improves predictive performance, the two-factor specification was expanded to six factors (Section 4.1) and the full evaluation pipeline was repeated. Table~\ref{tab:factor_comparison} compares walk-forward performance between the two specifications.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{2 Factors} & \multicolumn{2}{c}{6 Factors} \\
+& Regression & Random Forest & Regression & Random Forest \\
+\midrule
+Mean $R^2$ & $-0.0049$ & $-0.0149$ & $-0.0154$ & $-0.0413$ \\
+Std.\ Dev. & 0.0256 & 0.0545 & 0.0309 & 0.0836 \\
+\bottomrule
+\end{tabular}
+\caption{Walk-forward performance comparison between the two-factor and six-factor specifications.}
+\label{tab:factor_comparison}
+\end{table}
+
+Contrary to the expectation that additional factors would improve predictive performance, both models perform \emph{worse} out-of-sample under the six-factor specification, with lower mean $R^2$ and higher variance across walk-forward windows for both models. This result is consistent with several possible explanations: (i) additional factors, particularly those with overlapping information content (e.g., momentum measured over multiple horizons), may dilute rather than strengthen genuine signal; (ii) increased input dimensionality raises the risk of overfitting to noise, especially relative to a moderate sample size; and (iii) the expanded specification requires longer rolling windows, reducing the effective sample size and number of walk-forward windows available (14 versus 15). This finding is itself methodologically instructive: naively expanding a factor set does not guarantee improved out-of-sample performance and may in fact degrade it.
+
+\subsection{Factor Redundancy Analysis}
+
+To investigate the cause of the six-factor specification's degraded performance, pairwise correlations among the six factors were examined (Table~\ref{tab:correlation}).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+& Mom.\ 5 & Mom.\ 20 & Mom.\ 60 & Vol.\ 20 & Vol.\ 60 & Price/MA50 \\
+\midrule
+Momentum\_5 & 1.000 & 0.478 & 0.267 & 0.006 & 0.032 & 0.507 \\
+Momentum\_20 & 0.478 & 1.000 & 0.557 & $-$0.281 & $-$0.057 & 0.864 \\
+Momentum\_60 & 0.267 & 0.557 & 1.000 & $-$0.245 & $-$0.253 & 0.771 \\
+Volatility\_20 & 0.006 & $-$0.281 & $-$0.245 & 1.000 & 0.712 & $-$0.337 \\
+Volatility\_60 & 0.032 & $-$0.057 & $-$0.253 & 0.712 & 1.000 & $-$0.133 \\
+Price\_to\_MA50 & 0.507 & 0.864 & 0.771 & $-$0.337 & $-$0.133 & 1.000 \\
+\bottomrule
+\end{tabular}
+\caption{Pairwise correlation matrix of the six factors.}
+\label{tab:correlation}
+\end{table}
+
+Substantial multicollinearity is evident: Momentum\_20 and Price\_to\_MA50 are highly correlated ($r = 0.864$), as are Momentum\_60 and Price\_to\_MA50 ($r = 0.771$), and Volatility\_20 and Volatility\_60 ($r = 0.712$). Momentum\_5 is the only factor with consistently low correlation to the others, suggesting it is the sole factor carrying largely independent information within the expanded set.
+
+To test whether this redundancy explains the six-factor specification's underperformance, a trimmed three-factor specification (Momentum\_5, Momentum\_20, Volatility\_20) was constructed and re-evaluated using the identical pipeline. Table~\ref{tab:trimmed_comparison} reports walk-forward results across all three specifications.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+& 2 Factors & 3 Factors (Trimmed) & 6 Factors \\
+\midrule
+Regression Mean $R^2$ & $-0.0049$ & $-0.0109$ & $-0.0154$ \\
+Regression Std.\ Dev. & 0.0256 & 0.0297 & 0.0309 \\
+Random Forest Mean $R^2$ & $-0.0149$ & $-0.0190$ & $-0.0413$ \\
+Random Forest Std.\ Dev. & 0.0545 & 0.0560 & 0.0836 \\
+Paired $t$-test $p$-value & 0.464 & 0.536 & 0.215 \\
+\bottomrule
+\end{tabular}
+\caption{Walk-forward comparison across all three factor specifications.}
+\label{tab:trimmed_comparison}
+\end{table}
+
+Removing the redundant factors partially, but not fully, recovers performance: the trimmed three-factor specification substantially outperforms the six-factor specification (Random Forest std.\ falls from 0.0836 to 0.0560, close to the original two-factor level of 0.0545, and mean $R^2$ improves from $-0.0413$ to $-0.0190$), confirming that multicollinearity was a primary driver of the six-factor specification's degraded performance. However, the trimmed specification did not fully recover the performance of the original two-factor baseline on either mean $R^2$ or variance, indicating that 5-day momentum, while the least redundant of the additional factors considered, does not provide sufficient independent predictive value to justify its inclusion in this context. This result offers an important distinction: a factor's low correlation with other \emph{predictors} does not imply it carries genuine predictive information about the \emph{target}. Momentum\_5 appears to introduce independent noise rather than independent signal. Redundancy among factors was therefore only a partial explanation for the six-factor specification's underperformance; factor irrelevance -- independence from other predictors without corresponding relevance to the target -- appears to be a second, distinct contributor. Across all three specifications, the paired $t$-test consistently fails to reject the null hypothesis of no difference between the regression and Random Forest models (Table~\ref{tab:trimmed_comparison}), reinforcing that neither modeling approach demonstrates a statistically robust advantage regardless of the specific factor set used.
+
+\subsection{Benchmark Comparison}
+
+To contextualize the magnitude of the reported $R^2$ values, a passive buy-and-hold benchmark was computed over the same test period used in the single train/test split. The Nikkei 225 returned $125.27\%$ over this period, with an annualized Sharpe ratio of $1.15$ -- a strongly positive market environment. This benchmark clarifies the interpretation of the near-zero $R^2$ values reported throughout this study: the models are evaluated on their ability to predict \emph{short-horizon relative} returns (5-day forward returns), not on whether the market trended upward or downward in absolute terms. The fact that a simple, signal-free buy-and-hold approach substantially outperformed any strategy that could plausibly be derived from either model's near-zero predictive power underscores the practical difficulty of extracting exploitable short-term signals, even during a strongly trending market period.
+
+\subsection{Transaction Cost Analysis}
+
+To translate the regression model's predictions into a concrete trading assessment, a simple binary strategy was constructed: a long position is held whenever the model's predicted return is positive, and no position is held otherwise. This analysis is applied to the regression model as a representative case; given that walk-forward validation found no statistically significant difference between the regression and Random Forest models (Section 5.3), the qualitative conclusion -- that weak signals fail to survive realistic trading costs -- is expected to generalize to the Random Forest model as well, though formal verification is left to future work. Applying this rule to the regression model's test-period predictions and a transaction cost assumption of 10 basis points per trade yields the results in Table~\ref{tab:transaction_costs}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\toprule
+Metric & Value \\
+\midrule
+Strategy return (before costs) & $+4.36\%$ \\
+Number of position changes (trades) & 63 \\
+Total transaction costs & $6.30\%$ \\
+Strategy return (after costs) & $-1.94\%$ \\
+Buy-and-hold return (same period) & $+125.27\%$ \\
+\bottomrule
+\end{tabular}
+\caption{Transaction cost analysis for the signal-based strategy versus buy-and-hold, over the single-split test period.}
+\label{tab:transaction_costs}
+\end{table}
+
+The signal-based strategy's small pre-cost edge ($+4.36\%$) is entirely eliminated by realistic transaction costs, turning a modest gain into a net loss ($-1.94\%$). This occurs because the strategy's 63 position changes over the test period generate cumulative costs (6.30\%) that exceed the strategy's gross return. Furthermore, even the strategy's pre-cost return is dramatically inferior to simply holding the index throughout the period ($+125.27\%$). This result provides a concrete, practical confirmation of the study's broader finding: the weak statistical signals identified in the factor-based models do not translate into an economically viable trading strategy once realistic frictions are accounted for, and are vastly inferior to passive exposure to the underlying index.
+
+\subsection{Model Explainability}
+
+To characterize which factors the Random Forest model relies upon most heavily, SHAP (SHapley Additive exPlanations) values were computed for the trimmed three-factor specification using a tree-based explainer. Table~\ref{tab:shap} reports the mean absolute SHAP value for each factor across the test set.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\toprule
+Factor & Mean $|\text{SHAP value}|$ \\
+\midrule
+Volatility\_20 & 0.00226 \\
+Momentum\_5 & 0.00079 \\
+Momentum\_20 & 0.00079 \\
+\bottomrule
+\end{tabular}
+\caption{Mean absolute SHAP values by factor for the Random Forest model.}
+\label{tab:shap}
+\end{table}
+
+Volatility\_20 exerts approximately three times greater influence on the model's predictions than either momentum factor, which contribute equally. Notably, this ordering is consistent with the linear regression coefficients reported in Table~\ref{tab:single_split}'s underlying model, where Volatility\_20 similarly carried the largest coefficient magnitude (0.386) relative to Momentum\_5 ($-0.039$) and Momentum\_20 ($-0.017$). This convergence between two structurally different modeling approaches lends some credibility to the relative ordering of factor relevance, even though the absolute predictive power of both models remains weak. It is important to emphasize that this finding indicates only that volatility is comparatively \emph{less weak} than momentum as a predictor within this factor set, not that it constitutes a strong or economically exploitable signal.
+
+\section{Limitations}
+
+This study has several limitations. The factor set explored remains modest in scope, and results should not be interpreted as a comprehensive test of machine learning's value for equity signal generation more broadly. The analysis is conducted at the index level rather than across individual constituent securities. The transaction cost analysis applies a simplified binary long/flat trading rule with a single, fixed cost assumption (10 basis points per trade); real-world execution costs vary by trade size, liquidity conditions, and market impact, and were not modeled in full generality. The walk-forward validation scheme, while an improvement over a single train/test split, still relies on a limited number of windows (14--15), constraining the statistical power of significance tests performed on window-level results. These limitations are addressed, where applicable, in ongoing extensions of this work described below.
+
+\section{Conclusion and Future Work}
+
+This study finds that, using a minimal two-factor set, neither linear regression nor a regularized Random Forest model demonstrates robust, consistent predictive power for short-horizon Nikkei 225 returns once evaluated under walk-forward validation, despite an initially promising single-split result for the machine learning model. Expanding the factor set from two to six factors did not improve out-of-sample performance for either model, and in fact degraded it; correlation analysis attributed this largely to multicollinearity among the added factors, and a trimmed three-factor specification recovered most, though not all, of the lost performance. Across every specification tested, formal significance testing failed to establish a statistically robust advantage for either modeling approach. Together, these findings highlight the importance of rigorous, multi-window out-of-sample validation in empirical finance research, and caution against both single-split evaluation and unchecked factor expansion as sources of potentially misleading conclusions.
+
+Future extensions of this work will include: exploration of additional, genuinely independent factor categories beyond price-derived momentum and volatility measures; and a more granular transaction cost model incorporating variable trade sizing and market impact. This project is intended, in part, as an empirical foundation for further graduate-level research into signal robustness in Japanese equity markets.
+
+% ===================== BIBLIOGRAPHY =====================
+\begin{thebibliography}{9}
+
+\bibitem[Takahashi et al.(2024)]{takahashi2024forecasting}
+Takahashi, M., Watanabe, T., \& Omori, Y. (2024). Forecasting daily volatility of stock price index using daily returns and realized volatility. \textit{Econometrics and Statistics}, 32, 34--56.
+
+\bibitem[Ubukata and Watanabe(2011)]{ubukata2011pricing}
+Ubukata, M., \& Watanabe, T. (2011). Pricing Nikkei 225 options using realized volatility. IMES Discussion Paper Series, Bank of Japan.
+
+\bibitem[Watanabe and Nakajima(2023)]{watanabe2023highfrequency}
+Watanabe, T., \& Nakajima, J. (2023). High-frequency realized stochastic volatility model. Hitotsubashi Institute for Advanced Study Discussion Paper Series.
+
+\end{thebibliography}
+
+\end{document}
