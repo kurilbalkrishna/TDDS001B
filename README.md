@@ -10,7 +10,7 @@ This project tests whether a machine learning approach performs better or worse 
 
 KEY FINDING
 
-Neither model shows statistically significant predictive power once evaluated under walk-forward validation (paired t-test p = 0.54), and any small edge does not survive realistic transaction costs. An unconstrained Random Forest model is shown to overfit severely, underscoring the importance of regularization and rigorous multi-window validation over single-split evaluation.
+Neither model shows statistically significant predictive power once evaluated under walk-forward validation (paired t-test p = 0.46), and any small edge does not survive realistic transaction costs. An unconstrained Random Forest model is shown to overfit severely, underscoring the importance of regularization and rigorous multi-window validation over single-split evaluation.
 
 TECH STACK
 
