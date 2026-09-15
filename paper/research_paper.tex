@@ -95,7 +95,7 @@ Two configurations were evaluated:
 An initial evaluation used a chronological 80/20 split (no shuffling, to preserve temporal ordering and avoid look-ahead bias), with the final 20\% of observations (by date) held out as a test set.
 
 \subsubsection{Walk-Forward Validation}
-To assess robustness across different market regimes, a walk-forward validation scheme was subsequently employed. Beginning with an initial training window of 1{,}000 observations, the training window was expanded in increments of 200 observations, with each subsequent 200-observation block used as an out-of-sample test set. This produced 15 sequential train/test windows spanning the full sample period. Both models were retrained from scratch at each window using only data available up to that point, ensuring no future information was used in training.
+To assess robustness across different market regimes, a walk-forward validation scheme was subsequently employed. Beginning with an initial training window of 1{,}000 observations, the training window was expanded in increments of 200 observations, with each subsequent 200-observation block used as an out-of-sample test set. This produced 15 sequential train/test windows spanning the full sample period. Both models were retrained from scratch at each window using only data available up to that point, ensuring no future information was used in training.Training windows were additionally purged of the last (horizon−1) observations at each split boundary to eliminate residual label-overlap leakage between train and test, arising from the 5-day forward-return label; this correction had a negligible effect on reported results.
 
 \section{Results}
 
