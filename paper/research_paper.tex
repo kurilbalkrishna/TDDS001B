@@ -159,6 +159,54 @@ Contrary to the single-split result, walk-forward validation shows that the appa
 
 To assess whether the observed difference in mean performance between the two models is statistically meaningful, a paired $t$-test was conducted on the 15 paired window-level $R^2$ values. The test yielded $t = 0.75$, $p = 0.46$. As $p \gg 0.05$, the difference between the regression and Random Forest models across walk-forward windows is not statistically significant. This indicates that, despite regression exhibiting a higher mean and lower variance, neither model can be confidently distinguished from the other in terms of genuine predictive performance given the available sample of windows.
 
+\subsection{Combinatorial Purged Cross-Validation (Supplementary)}
+
+As a robustness check on the walk-forward result, a Combinatorial Purged
+Cross-Validation (CPCV) analysis was additionally performed, following
+Lopez de Prado (2018, Ch.~12). The sample was divided into $N=6$
+contiguous groups, with $k=2$ groups tested jointly per split
+($\binom{6}{2}=15$ splits), yielding $\phi = 5$ reconstructed,
+full-coverage out-of-sample backtest paths. Purging (horizon of 5 days,
+matching \texttt{Future\_Return\_5}) and embargo were applied identically
+to the walk-forward analysis.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Path & Regression $R^2$ & Random Forest $R^2$ \\
+\midrule
+1 & 0.0046  & 0.0014  \\
+2 & 0.0002  & $-0.0134$ \\
+3 & 0.0020  & $-0.0081$ \\
+4 & 0.0031  & 0.0006  \\
+5 & 0.0030  & $-0.0019$ \\
+\bottomrule
+\end{tabular}
+\caption{$R^2$ across the 5 CPCV backtest paths.}
+\label{tab:cpcv}
+\end{table}
+
+Table~\ref{tab:cpcv} shows Regression outperforming Random Forest on
+every one of the 5 paths, in contrast to the walk-forward result, where
+the two models were statistically indistinguishable. A paired $t$-test
+across paths yields $t = 3.19$, $p = 0.033$, nominally significant at
+the 5\% level. This result should be treated as suggestive rather than
+confirmatory: with only 5 paths, the test has limited statistical power,
+and CPCV paths are not fully independent of one another, since they are
+reconstructed from a shared, finite set of underlying splits. We
+nonetheless view the consistent direction of the effect across all 5
+paths --- Regression matching or exceeding Random Forest in every
+instance --- as corroborating evidence for the walk-forward finding that
+the simpler model is, if anything, more reliable than the more flexible
+one in this setting.
+
+A CPCV-based Sharpe ratio distribution for the regression-based
+long/flat strategy was also computed across the same 5 paths (mean
+$-0.29$, range $-0.85$ to $-0.04$). All 5 paths were negative, reinforcing
+the walk-forward conclusion that no tradeable edge survives realistic
+evaluation once transaction costs are considered. 
+
 \section{Discussion}
 
 Three findings emerge from this analysis. First, with only two simple factors, neither model demonstrates meaningful, consistent predictive power for 5-day forward returns on the Nikkei 225 -- a result broadly consistent with market efficiency. Second, an unconstrained tree-based model can produce dramatically misleading in-sample performance, underscoring the necessity of regularization when applying flexible machine learning models to financial time series with limited sample sizes relative to model complexity. Third, and most importantly from a methodological standpoint, a single train/test split evaluation would have supported an incorrect conclusion -- that machine learning meaningfully outperforms linear regression -- which walk-forward validation across multiple market regimes does not support. This illustrates a general risk in applied financial machine learning: performance conclusions drawn from a single evaluation window may not generalize and should be treated with appropriate caution.
@@ -279,6 +327,7 @@ Momentum\_20 & 0.00079 \\
 \end{table}
 
 Volatility\_20 exerts approximately three times greater influence on the model's predictions than either momentum factor, which contribute equally. Notably, this ordering is consistent with the linear regression coefficients reported in Table~\ref{tab:single_split}'s underlying model, where Volatility\_20 similarly carried the largest coefficient magnitude (0.386) relative to Momentum\_5 ($-0.039$) and Momentum\_20 ($-0.017$). This convergence between two structurally different modeling approaches lends some credibility to the relative ordering of factor relevance, even though the absolute predictive power of both models remains weak. It is important to emphasize that this finding indicates only that volatility is comparatively \emph{less weak} than momentum as a predictor within this factor set, not that it constitutes a strong or economically exploitable signal.
+
 
 \section{Limitations}
 
