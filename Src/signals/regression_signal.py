@@ -125,13 +125,14 @@ from sklearn.metrics import r2_score
 # Set walk-forward validation parameters
 window_size = 1000
 step_size = 200
+horizon = 5
 
 results = []
 
 # Walk-forward validation
 for start in range(window_size, len(X) - step_size, step_size):
-    X_train_wf = X.iloc[:start]
-    y_train_wf = y.iloc[:start]
+    X_train_wf = X.iloc[:start - (horizon - 1)]
+    y_train_wf = y.iloc[:start - (horizon - 1)]
     X_test_wf = X.iloc[start:start + step_size]
     y_test_wf = y.iloc[start:start + step_size]
 
